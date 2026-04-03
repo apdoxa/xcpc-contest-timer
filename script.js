@@ -58,13 +58,13 @@ function parseTzOffset(tzOffsetStr) {
     return sign * (h + m / 60);
 }
 
-function formatDuration(ms) {
-    const isNegative = ms < 0;
-    ms = Math.abs(ms);
+function formatDuration(totalSecs) {
+    const isNegative = totalSecs < 0;
+    totalSecs = Math.abs(totalSecs);
 
-    const secs = Math.floor((ms / 1000) % 60);
-    const mins = Math.floor((ms / 1000 / 60) % 60);
-    const hours = Math.floor((ms / 1000 / 3600));
+    const secs = totalSecs % 60;
+    const mins = Math.floor(totalSecs / 60) % 60;
+    const hours = Math.floor(totalSecs / 3600);
     const hh = String(hours).padStart(2, '0');
     const mm = String(mins).padStart(2, '0');
     const ss = String(secs).padStart(2, '0');
@@ -173,8 +173,6 @@ function initSettings() {
     const savedFinalWarning = localStorage.getItem('xcpc-final-warning');
     const savedLegend = localStorage.getItem('xcpc-legend');
     const savedTz = localStorage.getItem('xcpc-tz');
-
-    // 时区设置
 
     if (savedTz !== null) {
         tzOffsetHours = parseFloat(savedTz);
@@ -316,8 +314,10 @@ function updateLoop() {
     if (remainingMs > totalMs) displayRemaining_ms = totalMs;
 
 
-    const eFmt = formatDuration(elapsedMs >= 0 ? displayElapsed_ms : elapsedMs);
-    const rFmt = formatDuration(displayRemaining_ms);
+    const eSecs = Math.floor((elapsedMs >= 0 ? displayElapsed_ms : elapsedMs) / 1000);
+    const rSecs = Math.ceil(displayRemaining_ms / 1000);
+    const eFmt = formatDuration(eSecs);
+    const rFmt = formatDuration(rSecs);
 
     elapsedTimeEl.textContent = `${eFmt.sign}${eFmt.time}`;
     remainingTimeEl.textContent = rFmt.time;
