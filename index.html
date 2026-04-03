@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TIME</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏳</text></svg>">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="dark-mode">
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 5px;">设置</h2>
+            <div style="text-align: center; font-size: 0.9rem; opacity: 0.9; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; font-family: 'Share Tech Mono', monospace;">Settings</div>
+            <div class="form-group">
+                <label for="timezone-offset">时区调整 Time Zone (UTC Offset)</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="timezone-offset" placeholder="+08:00" value="+08:00" style="text-align: left; flex: 1;">
+                    <button type="button" id="tz-btn-down" style="padding: 0 15px; font-size: 1.5rem; flex-shrink: 0;" title="减少时区">-</button>
+                    <button type="button" id="tz-btn-up" style="padding: 0 15px; font-size: 1.5rem; flex-shrink: 0;" title="增加时区">+</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="page-title">页面标题 Page Title</label>
+                <input type="text" id="page-title" value="TIME">
+            </div>
+            <div class="form-group">
+                <label for="start-time">开始时间 Start Time</label>
+                <input type="datetime-local" id="start-time" step="1">
+            </div>
+            <div class="form-group">
+                <label for="end-time">结束时间 End Time</label>
+                <input type="datetime-local" id="end-time" step="1">
+            </div>
+            <div class="form-group">
+                <label for="warning-ratio">提醒比例 Warning Ratio</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="warning-ratio" value="0.20" style="text-align: left; flex: 1;" title="比例">
+                    <div style="position: relative; flex: 1;">
+                        <input type="text" id="warning-time" style="text-align: left; padding-right: 35px; width: 100%;" title="对应时间">
+                        <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); opacity: 0.8; font-size: 0.9rem; pointer-events: none; font-family: 'Share Tech Mono', monospace;">min</span>
+                    </div>
+                    <button type="button" id="wr-btn-down" style="padding: 0 15px; font-size: 1.5rem; flex-shrink: 0;" title="减少">-</button>
+                    <button type="button" id="wr-btn-up" style="padding: 0 15px; font-size: 1.5rem; flex-shrink: 0;" title="增加">+</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="final-warning">最后提醒 Final Warning</label>
+                <div style="display: flex; gap: 5px;">
+                    <div style="position: relative; flex: 1;">
+                        <input type="text" id="final-warning" value="3" style="text-align: left; padding-right: 35px;">
+                        <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); opacity: 0.8; font-size: 0.9rem; pointer-events: none; font-family: 'Share Tech Mono', monospace;">min</span>
+                    </div>
+                    <button type="button" id="fw-btn-down" style="padding: 0 15px; font-size: 1.5rem; flex-shrink: 0;" title="减少">-</button>
+                    <button type="button" id="fw-btn-up" style="padding: 0 15px; font-size: 1.5rem; flex-shrink: 0;" title="增加">+</button>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="save-settings-btn" style="display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0 auto;">
+                    <span style="font-weight: bold;">保存关闭</span>
+                    <span style="font-size: 0.8em; opacity: 0.9; font-weight: bold; font-family: 'Share Tech Mono', monospace;">Save & Close</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <div class="top-left">
+            <span id="current-time-display" class="time-text small-clock" title="当前时间">00:00:00</span>
+            <sup id="timezone-display" class="timezone-sup" title="当前时区">UTC</sup>
+        </div>
+        <div class="top-right">
+            <button id="legend-toggle" title="显示/隐藏说明进度条">🚥</button>
+            <button id="theme-toggle" title="切换纯黑 / 纯白模式">🌓</button>
+            <button id="settings-toggle" title="设定">⚙️</button>
+        </div>
+    </header>
+
+    <main class="center-stage">
+        <div id="legend-bar-container" class="legend-container">
+            <div class="legend-segment empty-segment">
+                <span class="cn">未开始</span>
+                <span class="en">Pending</span>
+                <div id="marker-1" class="legend-marker"></div>
+            </div>
+            <div class="legend-segment green-segment">
+                <span class="cn">进行中</span>
+                <span class="en">Running</span>
+                <div id="marker-2" class="legend-marker"></div>
+            </div>
+            <div class="legend-segment yellow-segment">
+                <span class="cn">即将结束</span>
+                <span class="en">Warning</span>
+                <div id="marker-3" class="legend-marker"></div>
+            </div>
+            <div class="legend-segment red-segment">
+                <span class="cn">最后提醒</span>
+                <span class="en">Final</span>
+                <div id="marker-4" class="legend-marker"></div>
+            </div>
+            <div class="legend-segment blue-segment">
+                <span class="cn">已结束</span>
+                <span class="en">Finished</span>
+            </div>
+        </div>
+        
+        <h1 id="main-title">TIME</h1>
+        <div class="big-text-container">
+            <div id="big-text" class="time-text display-clock">+00:00:00</div>
+        </div>
+
+        <div class="progress-section">
+            <div class="progress-labels-top">
+                <div class="left-text">
+                    <span class="label">已过时间</span>
+                    <span class="label">Elapsed</span>
+                </div>
+                <div class="right-text">
+                    <span class="label">剩余时间</span>
+                    <span class="label">Remaining</span>
+                </div>
+            </div>
+
+            <div class="progress-bar-container">
+                <div id="progress-bar-fill" class="progress-bar"></div>
+            </div>
+
+            <div class="progress-labels-bottom">
+                <div class="left-time">
+                    <span id="elapsed-time" class="time-text medium-clock">00:00:00</span>
+                </div>
+                <div class="right-time">
+                    <span id="remaining-time" class="time-text medium-clock">00:00:00</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
