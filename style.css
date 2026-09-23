@@ -95,6 +95,41 @@ button:hover {
     transform: scale(1.05);
 }
 
+.icon-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--text-color);
+    border-radius: 5px;
+    padding: 5px 10px;
+    color: var(--text-color);
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.icon-link:hover {
+    transform: scale(1.05);
+}
+
+.icon-logo {
+    display: block;
+    height: 1.6rem;
+    width: auto;
+}
+
+.icon-logo-white {
+    display: none;
+}
+
+body.dark-mode .icon-logo-black {
+    display: none;
+}
+
+body.dark-mode .icon-logo-white {
+    display: block;
+}
+
 .center-stage {
     flex: 1;
     display: flex;
