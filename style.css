@@ -6,20 +6,59 @@
     font-display: swap;
 }
 
+/* ===== 淡蓝色主题 / Soft blue theme ===== */
 :root {
-    --bg-color: #ffffff;
-    --text-color: #000000;
-    --bar-bg: #dddddd;
-    --modal-bg: rgba(255, 255, 255, 0.95);
-    --modal-border: #000000;
+    --bg-color: #eef4fb;
+    --bg-glow: #e2ecf9;
+    --text-color: #35506b;
+    --text-muted: #6f88a1;
+    --bar-bg: #dde8f5;
+    --modal-bg: #f7fbff;
+    --modal-border: #c3d8ec;
+    --accent: #5b9bd5;
+    --accent-soft: #d6e7f7;
+
+    --phase-run: #86c9a8;
+    --phase-warn: #f0d492;
+    --phase-final: #f0a79c;
+    --phase-done: #82b4e0;
+
+    --ok-bg: #d9f0e3;
+    --ok-border: #a2d8bd;
+    --ok-text: #3d8862;
+    --bad-bg: #fbe5e1;
+    --bad-border: #f0bdb4;
+    --bad-text: #c06a5d;
+    --idle-bg: #e6eff9;
+    --idle-border: #d3e2f1;
+    --idle-text: #8ba3ba;
 }
 
 body.dark-mode {
-    --bg-color: #000000;
-    --text-color: #ffffff;
-    --bar-bg: #333333;
-    --modal-bg: rgba(0, 0, 0, 0.95);
-    --modal-border: #ffffff;
+    --bg-color: #16232f;
+    --bg-glow: #1b2b3a;
+    --text-color: #d3e3f2;
+    --text-muted: #8ba4bb;
+    --bar-bg: #223648;
+    --modal-bg: #1b2b3a;
+    --modal-border: #35536b;
+    --accent: #6fa8dc;
+    --accent-soft: #24405a;
+
+    --phase-run: #4e8f72;
+    --phase-warn: #a8863f;
+    --phase-final: #a85c50;
+    --phase-done: #3f6f9e;
+
+    --ok-bg: #1e3a31;
+    --ok-border: #3a7a60;
+    --ok-text: #85d9ae;
+    --bad-bg: #3a2528;
+    --bad-border: #7d4b46;
+    --bad-text: #f0a79c;
+    --idle-bg: #1e2f3f;
+    --idle-border: #2c4257;
+    --idle-text: #7c93a8;
 }
 
 * {
@@ -30,6 +69,7 @@ body.dark-mode {
 
 body {
     background-color: var(--bg-color);
+    background-image: radial-gradient(circle at 50% 0%, var(--bg-glow) 0%, var(--bg-color) 60%);
     color: var(--text-color);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     transition: background-color 0.3s, color 0.3s;
@@ -48,74 +88,88 @@ body {
 header {
     display: flex;
     justify-content: space-between;
-    padding: 20px 30px;
+    align-items: center;
+    padding: 14px 26px;
+    flex: 0 0 auto;
 }
 
 .top-left {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
 }
 
 .label {
-    font-size: 1.8rem;
+    font-size: clamp(0.85rem, 1.2vw, 1.25rem);
     font-weight: bold;
+    opacity: 0.85;
 }
 
 .small-clock {
-    font-size: 2rem;
+    font-size: clamp(1.1rem, 1.6vw, 1.7rem);
+    letter-spacing: 1px;
 }
 
 .timezone-sup {
     font-family: 'Share Tech Mono', Consolas, monospace;
-    font-size: 1rem;
+    font-size: 0.85rem;
     font-weight: bold;
-    opacity: 0.8;
-    transform: translateY(-5px);
+    opacity: 0.6;
+    transform: translateY(-4px);
 }
 
 .top-right {
     display: flex;
-    gap: 15px;
+    gap: 10px;
+    align-items: center;
 }
 
 button {
     background: none;
-    border: 2px solid var(--text-color);
+    border: 1.5px solid var(--modal-border);
     color: var(--text-color);
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     cursor: pointer;
     padding: 5px 10px;
-    border-radius: 5px;
+    border-radius: 10px;
     font-family: inherit;
-    transition: transform 0.2s;
+    transition: transform 0.15s, background-color 0.2s, border-color 0.2s;
 }
 
 button:hover {
-    transform: scale(1.05);
+    transform: translateY(-1px);
+    border-color: var(--accent);
+}
+
+header button,
+header .icon-link {
+    font-size: 1.1rem;
+    padding: 4px 9px;
 }
 
 .icon-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid var(--text-color);
-    border-radius: 5px;
-    padding: 5px 10px;
+    border: 1.5px solid var(--modal-border);
+    border-radius: 10px;
+    padding: 4px 9px;
     color: var(--text-color);
     text-decoration: none;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: transform 0.15s, border-color 0.2s;
 }
 
 .icon-link:hover {
-    transform: scale(1.05);
+    transform: translateY(-1px);
+    border-color: var(--accent);
 }
 
 .icon-logo {
     display: block;
-    height: 1.6rem;
+    height: 1.2rem;
     width: auto;
+    opacity: 0.75;
 }
 
 .icon-logo-white {
@@ -131,35 +185,47 @@ body.dark-mode .icon-logo-white {
 }
 
 .center-stage {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 0 5%;
+    padding: 0 4%;
 }
 
 #main-title {
-    font-size: 4.5rem;
-    margin-bottom: 2vh;
+    font-size: clamp(1.4rem, 2.8vw, 2.6rem);
+    font-weight: 600;
+    margin-bottom: 1vh;
     text-align: center;
+    color: var(--text-color);
+    opacity: 0.9;
 }
 
 .big-text-container {
-    height: 25vh;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
 .display-clock {
-    font-size: 12vw;
-    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    font-size: min(9vw, 14vh);
     line-height: 1;
+    color: var(--accent);
+    transition: color 0.4s;
 }
 
-body.dark-mode .display-clock {
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+.display-clock[data-phase="warn"] {
+    color: var(--phase-warn);
+}
+
+.display-clock[data-phase="final"] {
+    color: var(--phase-final);
+}
+
+.display-clock[data-phase="done"] {
+    color: var(--phase-done);
 }
 
 .progress-section {
@@ -170,16 +236,16 @@ body.dark-mode .display-clock {
 .progress-labels-top {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 15px;
-    padding: 0 30px;
+    margin-bottom: 10px;
+    padding: 0 26px;
     width: 100%;
 }
 
 .progress-labels-bottom {
     display: flex;
     justify-content: space-between;
-    margin-top: 15px;
-    padding: 0 30px;
+    margin-top: 10px;
+    padding: 0 26px;
     width: 100%;
 }
 
@@ -205,115 +271,54 @@ body.dark-mode .display-clock {
 }
 
 .medium-clock {
-    font-size: 3rem;
+    font-size: clamp(1.15rem, 2.1vw, 2.1rem);
+    letter-spacing: 1px;
+    color: var(--text-color);
+    opacity: 0.92;
 }
 
 .progress-bar-container {
     width: 100%;
-    height: 60px;
+    height: clamp(26px, 4vh, 46px);
     background-color: var(--bar-bg);
     border-radius: 30px;
     overflow: hidden;
-    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
 }
 
 .progress-bar {
     height: 100%;
     width: 0%;
-    background-color: #00ff00;
+    background-color: var(--phase-run);
     transition: width 1s linear, background-color 0.5s;
 }
 
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
+.progress-bar[data-phase="pending"] {
+    background-color: var(--idle-border);
 }
 
-.modal.hidden {
-    display: none;
+.progress-bar[data-phase="warn"] {
+    background-color: var(--phase-warn);
 }
 
-.modal-content {
-    background-color: var(--modal-bg);
-    border: 2px solid var(--modal-border);
-    padding: 30px;
-    border-radius: 10px;
-    width: 90%;
-    max-width: 500px;
+.progress-bar[data-phase="final"] {
+    background-color: var(--phase-final);
 }
 
-.modal-content h2 {
-    margin-bottom: 20px;
-    text-align: center;
+.progress-bar[data-phase="done"] {
+    background-color: var(--phase-done);
 }
 
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 10px;
-    font-size: 1rem;
-    border: 1px solid var(--modal-border);
-    border-radius: 5px;
-    background: var(--bg-color);
-    color: var(--text-color);
-    font-family: inherit;
-}
-
-.color-scheme-dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-}
-
-.modal-actions {
-    margin-top: 25px;
-    text-align: center;
-}
-
-.modal-actions button {
-    padding: 10px 20px;
-    font-size: 1.2rem;
-}
-
-@media (max-width: 900px) {
-    .medium-clock {
-        font-size: 2rem;
-    }
-
-    .label {
-        font-size: 1.4rem;
-    }
-
-    .display-clock {
-        font-size: 15vw;
-    }
-}
-
+/* ===== 阶段图例 / Legend ===== */
 .legend-container {
     display: flex;
     width: 100%;
-    height: 60px;
+    height: clamp(38px, 5vh, 52px);
     background-color: var(--bar-bg);
-    margin-bottom: 5vh;
-    border-radius: 30px;
-    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+    margin-bottom: 2.5vh;
+    border-radius: 26px;
     overflow: hidden;
     transition: opacity 0.3s, height 0.3s, margin-bottom 0.3s, padding 0.3s;
+    flex: 0 0 auto;
 }
 
 .legend-container.hidden {
@@ -330,11 +335,15 @@ body.dark-mode .display-clock {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 8px 0;
+    padding: 6px 0;
     font-size: 0.8rem;
     font-weight: bold;
-    border-right: 1px solid rgba(0, 0, 0, 0.2);
     position: relative;
+    color: #33506b;
+}
+
+body.dark-mode .legend-segment {
+    color: #e2eefb;
 }
 
 .legend-marker {
@@ -342,23 +351,20 @@ body.dark-mode .display-clock {
     right: 0;
     top: 50%;
     transform: translate(50%, -50%);
-    background: var(--bg-color);
+    background: var(--modal-bg);
     color: var(--text-color);
     font-family: 'Share Tech Mono', Consolas, monospace;
-    font-size: 1.2rem;
-    padding: 2px 4px;
-    border-radius: 4px;
-    border: 1px solid var(--text-color);
+    font-size: 0.9rem;
+    padding: 1px 5px;
+    border-radius: 6px;
+    border: 1px solid var(--modal-border);
     z-index: 10;
     white-space: nowrap;
 }
 
-#marker-1, #marker-4 {
-    font-size: 1.5rem;
-}
-
-body.dark-mode .legend-segment {
-    border-right: 1px solid rgba(255, 255, 255, 0.2);
+#marker-1,
+#marker-4 {
+    font-size: 1rem;
 }
 
 .legend-segment:last-child {
@@ -367,38 +373,414 @@ body.dark-mode .legend-segment {
 
 .empty-segment {
     background-color: var(--bar-bg);
-    color: var(--text-color);
+    color: var(--text-muted);
 }
 
 .passed-segment {
     background-color: var(--bar-bg) !important;
-    color: var(--text-color) !important;
+    color: var(--text-muted) !important;
 }
 
 .green-segment {
-    background-color: #00ff00;
-    color: #000;
+    background-color: var(--phase-run);
 }
 
 .yellow-segment {
-    background-color: #ffff00;
-    color: #000;
+    background-color: var(--phase-warn);
 }
 
 .red-segment {
-    background-color: #ff0000;
-    color: #000;
+    background-color: var(--phase-final);
 }
 
 .blue-segment {
-    background-color: #00bfff;
-    color: #000;
+    background-color: var(--phase-done);
 }
 
 .cn {
-    font-size: 1.2rem;
+    font-size: clamp(0.7rem, 1vw, 0.95rem);
 }
 
 .en {
+    font-size: clamp(0.7rem, 1vw, 0.95rem);
+}
+
+/* ===== 罚时板 / Penalty board ===== */
+.penalty-board {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 24px 20px;
+}
+
+.pb-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    max-width: 100%;
+}
+
+.pb-cell {
+    width: clamp(38px, 3.2vw, 50px);
+    height: clamp(38px, 3.2vw, 50px);
+    padding: 0;
+    border-radius: 12px;
+    border: 1.5px solid var(--idle-border);
+    background-color: var(--idle-bg);
+    color: var(--idle-text);
+    font-family: 'Share Tech Mono', Consolas, monospace;
+    font-size: clamp(1rem, 1.2vw, 1.25rem);
+    font-weight: bold;
+    line-height: 1;
+    letter-spacing: 0;
+    transition: transform 0.15s, background-color 0.25s, border-color 0.25s, color 0.25s;
+}
+
+.pb-cell:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+}
+
+.pb-cell.is-ac {
+    background-color: var(--ok-bg);
+    border-color: var(--ok-border);
+    color: var(--ok-text);
+}
+
+.pb-cell.is-wa {
+    background-color: var(--bad-bg);
+    border-color: var(--bad-border);
+    color: var(--bad-text);
+}
+
+.pb-summary {
+    font-family: 'Share Tech Mono', Consolas, monospace;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+}
+
+/* 右下角加号 / Floating add button */
+.pb-add {
+    position: fixed;
+    right: 30px;
+    bottom: 30px;
+    width: 58px;
+    height: 58px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background-color: var(--accent);
+    color: #ffffff;
+    font-size: 1.8rem;
+    font-weight: bold;
+    line-height: 1;
+    box-shadow: 0 8px 20px rgba(91, 155, 213, 0.35);
+    z-index: 900;
+    transition: transform 0.15s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.pb-add:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 10px 24px rgba(91, 155, 213, 0.45);
+    border: none;
+}
+
+/* 记录面板 / Submit sheet */
+.pb-sheet {
+    position: fixed;
+    right: 30px;
+    bottom: 102px;
+    width: min(320px, calc(100vw - 40px));
+    background-color: var(--modal-bg);
+    border: 1.5px solid var(--modal-border);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 14px 34px rgba(53, 80, 107, 0.16);
+    z-index: 950;
+}
+
+.pb-sheet.hidden {
+    display: none;
+}
+
+.pb-sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-color);
+}
+
+.pb-sheet-close {
+    border: none;
+    background: none;
     font-size: 1.2rem;
+    line-height: 1;
+    padding: 0 4px;
+    color: var(--text-muted);
+}
+
+.pb-sheet-close:hover {
+    transform: none;
+    border: none;
+    color: var(--text-color);
+}
+
+.pb-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pb-pick {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border-radius: 10px;
+    border: 1.5px solid var(--idle-border);
+    background-color: var(--idle-bg);
+    color: var(--idle-text);
+    font-family: 'Share Tech Mono', Consolas, monospace;
+    font-size: 1rem;
+    font-weight: bold;
+    line-height: 1;
+    letter-spacing: 0;
+}
+
+.pb-pick.is-ac {
+    background-color: var(--ok-bg);
+    border-color: var(--ok-border);
+    color: var(--ok-text);
+}
+
+.pb-pick.is-wa {
+    background-color: var(--bad-bg);
+    border-color: var(--bad-border);
+    color: var(--bad-text);
+}
+
+.pb-pick.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.pb-sheet-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.pb-choice {
+    flex: 1;
+    padding: 11px 0;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.pb-choice-ac {
+    background-color: var(--ok-bg);
+    border-color: var(--ok-border);
+    color: var(--ok-text);
+}
+
+.pb-choice-wa {
+    background-color: var(--bad-bg);
+    border-color: var(--bad-border);
+    color: var(--bad-text);
+}
+
+.pb-choice:hover {
+    transform: translateY(-1px);
+}
+
+.pb-sheet-hint {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* ===== 设置面板 / Settings modal ===== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(53, 80, 107, 0.25);
+    backdrop-filter: blur(2px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background-color: var(--modal-bg);
+    border: 1.5px solid var(--modal-border);
+    padding: 22px 26px;
+    border-radius: 18px;
+    width: 90%;
+    max-width: 480px;
+    max-height: 94vh;
+    overflow-y: auto;
+    box-shadow: 0 18px 40px rgba(53, 80, 107, 0.18);
+}
+
+.modal-content h2 {
+    margin-bottom: 12px;
+    text-align: center;
+    font-size: 1.3rem;
+}
+
+.form-group {
+    margin-bottom: 10px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 0.95rem;
+    border: 1.5px solid var(--modal-border);
+    border-radius: 10px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: inherit;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.color-scheme-dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+
+.modal-actions {
+    position: sticky;
+    bottom: -22px;
+    margin-top: 16px;
+    padding: 12px 0 22px;
+    text-align: center;
+    background-color: var(--modal-bg);
+    border-top: 1px solid var(--modal-border);
+}
+
+.modal-actions button {
+    padding: 10px 24px;
+    font-size: 1.05rem;
+    border-radius: 14px;
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+}
+
+.modal-actions button:hover {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* ===== 提示 / Toast ===== */
+#toast {
+    position: fixed;
+    left: 50%;
+    bottom: 34px;
+    transform: translate(-50%, 14px);
+    background-color: var(--modal-bg);
+    color: var(--text-color);
+    border: 1.5px solid var(--modal-border);
+    border-radius: 12px;
+    padding: 9px 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s;
+    box-shadow: 0 10px 24px rgba(53, 80, 107, 0.15);
+    z-index: 2000;
+    max-width: 90vw;
+    text-align: center;
+}
+
+#toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+/* ===== 小屏适配 / Small screens ===== */
+@media (max-width: 900px) {
+    .medium-clock {
+        font-size: 1.3rem;
+    }
+
+    .label {
+        font-size: 0.95rem;
+    }
+
+    .display-clock {
+        font-size: min(13vw, 11vh);
+    }
+
+    .pb-cell {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        font-size: 0.95rem;
+    }
+
+    .pb-add {
+        right: 18px;
+        bottom: 18px;
+        width: 52px;
+        height: 52px;
+    }
+
+    .pb-sheet {
+        right: 18px;
+        bottom: 82px;
+    }
+}
+
+@media (max-height: 760px) {
+    #main-title {
+        font-size: 1.3rem;
+        margin-bottom: 0.4vh;
+    }
+
+    .legend-container {
+        margin-bottom: 1.4vh;
+    }
+
+    .progress-section {
+        margin-top: 1.2vh;
+    }
+
+    .progress-labels-top {
+        margin-bottom: 6px;
+    }
+
+    .progress-labels-bottom {
+        margin-top: 6px;
+    }
 }

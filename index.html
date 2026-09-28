@@ -9,11 +9,11 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body class="dark-mode">
+<body>
     <div id="settings-modal" class="modal hidden">
         <div class="modal-content">
             <h2 style="margin-bottom: 5px;">设置</h2>
-            <div style="text-align: center; font-size: 0.9rem; opacity: 0.9; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; font-family: 'Share Tech Mono', monospace;">Settings</div>
+            <div style="text-align: center; font-size: 0.9rem; opacity: 0.9; font-weight: bold; margin-bottom: 14px; text-transform: uppercase; font-family: 'Share Tech Mono', monospace;">Settings</div>
             <div class="form-group">
                 <label for="timezone-offset">时区调整 Time Zone (UTC Offset)</label>
                 <div style="display: flex; gap: 5px;">
@@ -57,6 +57,31 @@
                     <button type="button" id="fw-btn-up" style="padding: 0 15px; font-size: 1.5rem; flex-shrink: 0;" title="增加">+</button>
                 </div>
             </div>
+            <div style="display: flex; gap: 12px;">
+                <div class="form-group" style="flex: 1; min-width: 0;">
+                    <label for="wrong-penalty">错误罚时 Penalty</label>
+                    <div style="display: flex; gap: 4px;">
+                        <div style="position: relative; flex: 1; min-width: 0;">
+                            <input type="text" id="wrong-penalty" value="20" style="text-align: left; padding-right: 30px;" title="每道已通过题目在 AC 前的每次错误提交所加的罚时（分钟）">
+                            <span style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); opacity: 0.8; font-size: 0.8rem; pointer-events: none; font-family: 'Share Tech Mono', monospace;">min</span>
+                        </div>
+                        <button type="button" id="wp-btn-down" style="padding: 0 9px; font-size: 1.2rem; flex-shrink: 0;" title="减少">-</button>
+                        <button type="button" id="wp-btn-up" style="padding: 0 9px; font-size: 1.2rem; flex-shrink: 0;" title="增加">+</button>
+                    </div>
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 0;">
+                    <label for="problem-count">题目数量 Problems</label>
+                    <div style="display: flex; gap: 4px;">
+                        <input type="text" id="problem-count" value="15" style="text-align: left; flex: 1; min-width: 0;" title="罚时板显示的题目数量 (1-26)，从 A 开始命名">
+                        <button type="button" id="pc-btn-down" style="padding: 0 9px; font-size: 1.2rem; flex-shrink: 0;" title="减少">-</button>
+                        <button type="button" id="pc-btn-up" style="padding: 0 9px; font-size: 1.2rem; flex-shrink: 0;" title="增加">+</button>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 0;">
+                <span style="font-size: 0.85rem; color: var(--text-muted);">记录保存在本机浏览器 / Saved locally</span>
+                <button type="button" id="pb-reset-settings" style="font-size: 0.85rem; padding: 5px 10px;">清空罚时板 Clear</button>
+            </div>
             <div class="modal-actions">
                 <button id="save-settings-btn" style="display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0 auto;">
                     <span style="font-weight: bold;">保存关闭</span>
@@ -77,7 +102,7 @@
                 <img class="icon-logo icon-logo-white" src="img/GitHub_Invertocat_White.svg" alt="GitHub">
             </a>
             <button id="legend-toggle" title="显示 / 隐藏说明进度条">🚥</button>
-            <button id="theme-toggle" title="切换纯黑 / 纯白模式">🌓</button>
+            <button id="theme-toggle" title="切换深色 / 浅色模式">🌓</button>
             <button id="settings-toggle" title="设定">⚙️</button>
         </div>
     </header>
@@ -141,6 +166,28 @@
             </div>
         </div>
     </main>
+
+    <section id="penalty-board" class="penalty-board">
+        <div id="pb-grid" class="pb-grid"></div>
+        <div class="pb-summary"><span id="pb-summary-text">0 题 · 罚时 0</span></div>
+    </section>
+
+    <button id="pb-add" class="pb-add" title="记录一次提交" aria-label="记录一次提交">＋</button>
+
+    <div id="pb-sheet" class="pb-sheet hidden">
+        <div class="pb-sheet-head">
+            <span>记录提交 / Submit</span>
+            <button id="pb-sheet-close" class="pb-sheet-close" title="关闭">×</button>
+        </div>
+        <div id="pb-picker" class="pb-picker"></div>
+        <div class="pb-sheet-actions">
+            <button id="pb-ac" class="pb-choice pb-choice-ac">正确</button>
+            <button id="pb-wa" class="pb-choice pb-choice-wa">错误</button>
+        </div>
+        <div class="pb-sheet-hint">选题目 → 点「正确」或「错误」<br>点击已记录的字母可清除该题</div>
+    </div>
+
+    <div id="toast"></div>
 
     <script src="script.js"></script>
 </body>

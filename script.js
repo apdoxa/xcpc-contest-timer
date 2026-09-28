@@ -29,7 +29,7 @@ const legendBarContainer = document.getElementById('legend-bar-container');
 
 let startTime = null;
 let endTime = null;
-let isDarkMode = true;
+let isDarkMode = false;
 let warningRatio = 0.20;
 let tzOffsetHours = 8;
 let finalWarningMin = 3;
@@ -168,7 +168,7 @@ function initSettings() {
     const savedTitle = localStorage.getItem('xcpc-title') || 'XCPC Contest Timer';
     const savedStart = localStorage.getItem('xcpc-start');
     const savedEnd = localStorage.getItem('xcpc-end');
-    const savedTheme = localStorage.getItem('xcpc-theme') || 'dark';
+    const savedTheme = localStorage.getItem('xcpc-theme') || 'light';
     const savedWarningRatio = localStorage.getItem('xcpc-warning-ratio');
     const savedFinalWarning = localStorage.getItem('xcpc-final-warning');
     const savedLegend = localStorage.getItem('xcpc-legend');
@@ -268,6 +268,18 @@ function saveSettings() {
         return;
     }
 
+    const wrongPenaltyVal = parseFloat(wrongPenaltyInput.value);
+    if (isNaN(wrongPenaltyVal) || wrongPenaltyVal < 0) {
+        alert("每次错误罚时必须为大于或等于 0 的数字");
+        return;
+    }
+
+    const problemCountVal = parseInt(problemCountInput.value, 10);
+    if (isNaN(problemCountVal) || problemCountVal < 1 || problemCountVal > 26) {
+        alert("题目数量必须在 1 到 26 之间");
+        return;
+    }
+
     startTime = start;
     endTime = end;
     warningRatio = ratioVal;
@@ -288,6 +300,8 @@ function saveSettings() {
     modal.classList.add('hidden');
     updateLegendMarkers();
     updateLoop();
+
+    applyPenaltySettings(wrongPenaltyVal, problemCountVal);
 }
 
 function updateLoop() {
@@ -322,24 +336,26 @@ function updateLoop() {
     elapsedTimeEl.textContent = `${eFmt.sign}${eFmt.time}`;
     remainingTimeEl.textContent = rFmt.time;
 
-    let mainColor = '#00ff00';
+    let phase = 'run';
     const warningThreshold = 1.0 - warningRatio;
     let currentPhaseIdx = 1;
 
     if (elapsedMs < 0) {
+        phase = 'pending';
         currentPhaseIdx = 0;
     } else if (ratio >= 1.0) {
-        mainColor = '#00bfff';
+        phase = 'done';
         currentPhaseIdx = 4;
     } else if (remainingMs <= finalWarningMin * 60 * 1000 && remainingMs > 0) {
-        mainColor = '#ff0000';
+        phase = 'final';
         currentPhaseIdx = 3;
     } else if (ratio >= warningThreshold) {
-        mainColor = '#ffff00';
+        phase = 'warn';
         currentPhaseIdx = 2;
     }
 
-    progressBarFill.style.backgroundColor = mainColor;
+    progressBarFill.dataset.phase = phase;
+    bigTextEl.dataset.phase = phase;
 
     const segments = document.querySelectorAll('.legend-segment');
     segments.forEach((seg, idx) => {
@@ -353,19 +369,15 @@ function updateLoop() {
 
     if (elapsedMs < 0) {
         bigTextEl.textContent = `${eFmt.sign}${eFmt.time}`;
-        bigTextEl.style.color = 'inherit';
     }
     else if (ratio < warningThreshold) {
         bigTextEl.textContent = `+${eFmt.time}`;
-        bigTextEl.style.color = 'inherit';
     }
     else if (ratio < 1.0) {
         bigTextEl.textContent = `-${rFmt.time}`;
-        bigTextEl.style.color = mainColor;
     }
     else {
         bigTextEl.textContent = `+${eFmt.time}`;
-        bigTextEl.style.color = mainColor;
     }
 }
 
@@ -468,9 +480,430 @@ themeToggleBtn.addEventListener('click', () => {
     localStorage.setItem('xcpc-theme', isDarkMode ? 'dark' : 'light');
 });
 
+/* ===================== 罚时板 Penalty Board ===================== */
+/*
+ * 标准 ICPC 罚时：只有已通过的题目计罚时
+ *   罚时 = 该题 AC 时刻(赛时分钟, 向下取整) + 每次错误罚时 × AC 之前的错误提交次数
+ * 未通过的题目不计罚时；AC 之后的提交不计罚时。
+ * 界面只用颜色表达状态：绿色 = 已通过，红色 = 有错误未通过，灰蓝 = 未提交。
+ */
+
+const PB_STORAGE_KEY = 'xcpc-vp-board';
+const PB_DEFAULT_PROBLEM_COUNT = 15;
+const PB_DEFAULT_WRONG_PENALTY = 20;
+const PB_MAX_PROBLEMS = 26;
+
+const pbGrid = document.getElementById('pb-grid');
+const pbSummaryEl = document.getElementById('pb-summary-text');
+const pbPicker = document.getElementById('pb-picker');
+const pbSheet = document.getElementById('pb-sheet');
+const pbSheetClose = document.getElementById('pb-sheet-close');
+const pbAddBtn = document.getElementById('pb-add');
+const pbAcBtn = document.getElementById('pb-ac');
+const pbWaBtn = document.getElementById('pb-wa');
+const pbResetSettingsBtn = document.getElementById('pb-reset-settings');
+const toastEl = document.getElementById('toast');
+const wrongPenaltyInput = document.getElementById('wrong-penalty');
+const problemCountInput = document.getElementById('problem-count');
+const wpBtnUp = document.getElementById('wp-btn-up');
+const wpBtnDown = document.getElementById('wp-btn-down');
+const pcBtnUp = document.getElementById('pc-btn-up');
+const pcBtnDown = document.getElementById('pc-btn-down');
+
+let problemCount = PB_DEFAULT_PROBLEM_COUNT;
+let penaltyPerWrong = PB_DEFAULT_WRONG_PENALTY;
+let pbData = {};
+let pbSeq = 0;
+let pbSelected = 'A';
+let pbToastTimer = null;
+
+function pbLetter(index) {
+    return String.fromCharCode(65 + index);
+}
+
+function pbSubs(letter) {
+    if (!pbData[letter] || !Array.isArray(pbData[letter].subs)) {
+        pbData[letter] = { subs: [] };
+    }
+    return pbData[letter].subs;
+}
+
+function pbSave() {
+    try {
+        localStorage.setItem(PB_STORAGE_KEY, JSON.stringify({ seq: pbSeq, problems: pbData }));
+    } catch (e) {
+        /* 存储不可用时忽略 */
+    }
+}
+
+function pbLoad() {
+    let raw = null;
+    try {
+        raw = localStorage.getItem(PB_STORAGE_KEY);
+    } catch (e) {
+        raw = null;
+    }
+
+    if (raw) {
+        try {
+            const obj = JSON.parse(raw);
+            if (obj && typeof obj === 'object') {
+                if (obj.problems && typeof obj.problems === 'object') pbData = obj.problems;
+                if (typeof obj.seq === 'number' && isFinite(obj.seq)) pbSeq = obj.seq;
+            }
+        } catch (e) {
+            pbData = {};
+        }
+    }
+
+    // 规范化：任何非 AC 的状态都视为错误提交
+    const normalized = {};
+    Object.keys(pbData).forEach((letter) => {
+        const entry = pbData[letter];
+        if (!letter.match(/^[A-Z]$/) || !entry || !Array.isArray(entry.subs)) return;
+
+        const subs = [];
+        entry.subs.forEach((s) => {
+            if (!s || typeof s.timeSec !== 'number') return;
+            const timeSec = Math.max(0, Math.round(s.timeSec));
+            if (!isFinite(timeSec)) return;
+            pbSeq++;
+            subs.push({
+                id: 's' + pbSeq,
+                status: s.status === 'AC' ? 'AC' : 'WA',
+                timeSec: timeSec,
+                seq: pbSeq
+            });
+        });
+        if (subs.length) normalized[letter] = { subs: subs };
+    });
+    pbData = normalized;
+}
+
+function pbNowSec() {
+    if (!startTime) return 0;
+    return Math.max(0, Math.floor((Date.now() - startTime.getTime()) / 1000));
+}
+
+function pbCompute(letter) {
+    const subs = pbSubs(letter).slice().sort((a, b) => (a.timeSec - b.timeSec) || (a.seq - b.seq));
+    let ac = null;
+    let wrong = 0;
+
+    for (let i = 0; i < subs.length; i++) {
+        if (subs[i].status === 'AC') {
+            ac = subs[i];
+            break;
+        }
+        wrong++;
+    }
+
+    const acMin = ac ? Math.floor(ac.timeSec / 60) : 0;
+
+    return {
+        subs: subs,
+        ac: ac,
+        wrong: wrong,
+        acMin: acMin,
+        penalty: ac ? (acMin + wrong * penaltyPerWrong) : 0,
+        solved: !!ac
+    };
+}
+
+function pbTotals() {
+    let solved = 0;
+    let penalty = 0;
+
+    for (let i = 0; i < problemCount; i++) {
+        const info = pbCompute(pbLetter(i));
+        if (!info.solved) continue;
+        solved++;
+        penalty += info.penalty;
+    }
+
+    return { solved: solved, penalty: penalty };
+}
+
+function pbFmtShort(totalSec) {
+    const sec = Math.max(0, Math.floor(totalSec));
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor(sec / 60) % 60;
+    const s = sec % 60;
+    if (h > 0) {
+        return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function pbToast(message) {
+    if (!toastEl) return;
+    toastEl.textContent = message;
+    toastEl.classList.add('show');
+    if (pbToastTimer) clearTimeout(pbToastTimer);
+    pbToastTimer = setTimeout(() => toastEl.classList.remove('show'), 1600);
+}
+
+function pbStateClass(letter) {
+    const info = pbCompute(letter);
+    if (info.solved) return 'is-ac';
+    if (info.subs.length) return 'is-wa';
+    return '';
+}
+
+function pbCellTitle(letter) {
+    const info = pbCompute(letter);
+    if (info.solved) {
+        return `${letter} 题：AC ${pbFmtShort(info.ac.timeSec)}`
+            + (info.wrong ? ` · 错 ${info.wrong} 次` : '')
+            + ` · 罚时 ${info.penalty} min（点击可清除该题记录）`;
+    }
+    if (info.subs.length) {
+        return `${letter} 题：未通过 · ${info.subs.length} 次提交（点击可清除该题记录）`;
+    }
+    return `${letter} 题：未提交（点击记录提交）`;
+}
+
+function pbRecord(letter, isAc) {
+    const notStarted = !!(startTime && Date.now() < startTime.getTime());
+    const timeSec = pbNowSec();
+
+    pbSeq++;
+    pbSubs(letter).push({
+        id: 's' + pbSeq,
+        status: isAc ? 'AC' : 'WA',
+        timeSec: timeSec,
+        seq: pbSeq
+    });
+
+    pbSave();
+    pbRender();
+
+    const label = isAc ? '正确' : '错误';
+    if (notStarted) {
+        pbToast(`${letter} 题 · ${label}（比赛未开始，记为 00:00）`);
+    } else {
+        pbToast(`${letter} 题 · ${label} · 赛时 ${pbFmtShort(timeSec)}`);
+    }
+}
+
+function pbClearProblem(letter) {
+    if (pbData[letter]) delete pbData[letter];
+    pbSave();
+    pbRender();
+    pbToast(`${letter} 题记录已清除`);
+}
+
+function pbClearAll() {
+    if (!confirm('确定要清空罚时板的所有记录吗？此操作不可撤销。')) return;
+    pbData = {};
+    pbSave();
+    pbRender();
+    pbToast('罚时板已清空');
+}
+
+function pbRender() {
+    if (!pbGrid) return;
+
+    // 字母格
+    const gridFrag = document.createDocumentFragment();
+    for (let i = 0; i < problemCount; i++) {
+        const letter = pbLetter(i);
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = ('pb-cell ' + pbStateClass(letter)).trim();
+        cell.dataset.letter = letter;
+        cell.textContent = letter;
+        cell.title = pbCellTitle(letter);
+        gridFrag.appendChild(cell);
+    }
+    pbGrid.innerHTML = '';
+    pbGrid.appendChild(gridFrag);
+
+    // 选择器
+    if (pbPicker) {
+        const pickFrag = document.createDocumentFragment();
+        for (let i = 0; i < problemCount; i++) {
+            const letter = pbLetter(i);
+            const pick = document.createElement('button');
+            pick.type = 'button';
+            pick.className = ('pb-pick ' + pbStateClass(letter) + (letter === pbSelected ? ' selected' : '')).trim();
+            pick.dataset.letter = letter;
+            pick.textContent = letter;
+            pick.title = pbCellTitle(letter);
+            pickFrag.appendChild(pick);
+        }
+        pbPicker.innerHTML = '';
+        pbPicker.appendChild(pickFrag);
+    }
+
+    // 汇总
+    if (pbSummaryEl) {
+        const totals = pbTotals();
+        pbSummaryEl.textContent = `已通过 ${totals.solved} · 罚时 ${totals.penalty}`;
+        pbSummaryEl.title = `罚时单位：分钟（AC 时刻 + ${penaltyPerWrong} × 错误次数）`;
+    }
+}
+
+function pbFirstUnsolved() {
+    for (let i = 0; i < problemCount; i++) {
+        const letter = pbLetter(i);
+        if (!pbCompute(letter).solved) return letter;
+    }
+    return 'A';
+}
+
+function pbOpenSheet(letter) {
+    if (!pbSheet) return;
+
+    const index = letter ? letter.charCodeAt(0) - 65 : -1;
+    pbSelected = (index >= 0 && index < problemCount) ? letter : pbFirstUnsolved();
+
+    pbSheet.classList.remove('hidden');
+    pbRender();
+}
+
+function pbCloseSheet() {
+    if (pbSheet) pbSheet.classList.add('hidden');
+}
+
+function pbSyncSettingsInputs() {
+    if (wrongPenaltyInput) wrongPenaltyInput.value = penaltyPerWrong;
+    if (problemCountInput) problemCountInput.value = problemCount;
+}
+
+function applyPenaltySettings(wrongPenaltyVal, problemCountVal) {
+    penaltyPerWrong = wrongPenaltyVal;
+    problemCount = problemCountVal;
+
+    localStorage.setItem('xcpc-wrong-penalty', penaltyPerWrong.toString());
+    localStorage.setItem('xcpc-problem-count', problemCount.toString());
+
+    if (pbSelected.charCodeAt(0) - 65 >= problemCount) pbSelected = pbFirstUnsolved();
+
+    pbSyncSettingsInputs();
+    pbRender();
+}
+
+function pbAdjustPenalty(delta) {
+    let current = parseFloat(wrongPenaltyInput.value);
+    if (isNaN(current)) current = PB_DEFAULT_WRONG_PENALTY;
+    wrongPenaltyInput.value = Number(Math.max(0, current + delta).toFixed(2)).toString();
+}
+
+function pbAdjustProblemCount(delta) {
+    let current = parseInt(problemCountInput.value, 10);
+    if (isNaN(current)) current = PB_DEFAULT_PROBLEM_COUNT;
+    problemCountInput.value = Math.min(PB_MAX_PROBLEMS, Math.max(1, current + delta));
+}
+
+function pbInit() {
+    pbLoad();
+
+    const savedPenalty = localStorage.getItem('xcpc-wrong-penalty');
+    const savedCount = localStorage.getItem('xcpc-problem-count');
+
+    const parsedPenalty = parseFloat(savedPenalty);
+    if (savedPenalty !== null && !isNaN(parsedPenalty) && parsedPenalty >= 0) {
+        penaltyPerWrong = parsedPenalty;
+    }
+
+    const parsedCount = parseInt(savedCount, 10);
+    if (savedCount !== null && !isNaN(parsedCount) && parsedCount >= 1 && parsedCount <= PB_MAX_PROBLEMS) {
+        problemCount = parsedCount;
+    }
+
+    pbSelected = pbFirstUnsolved();
+    pbSyncSettingsInputs();
+    pbRender();
+}
+
+if (pbGrid) {
+    pbGrid.addEventListener('click', (e) => {
+        const cell = e.target.closest('.pb-cell');
+        if (!cell) return;
+        const letter = cell.dataset.letter;
+
+        if (pbSubs(letter).length) {
+            if (!confirm(`清除 ${letter} 题的记录？`)) return;
+            pbClearProblem(letter);
+        } else {
+            pbOpenSheet(letter);
+        }
+    });
+}
+
+if (pbPicker) {
+    pbPicker.addEventListener('click', (e) => {
+        const pick = e.target.closest('.pb-pick');
+        if (!pick) return;
+        pbSelected = pick.dataset.letter;
+        // 只切换选中样式，不重建 DOM，避免点击事件的目标元素被移除
+        pbPicker.querySelectorAll('.pb-pick').forEach((el) => {
+            el.classList.toggle('selected', el === pick);
+        });
+    });
+}
+
+if (pbAddBtn) pbAddBtn.addEventListener('click', () => pbOpenSheet());
+if (pbSheetClose) pbSheetClose.addEventListener('click', pbCloseSheet);
+if (pbAcBtn) pbAcBtn.addEventListener('click', () => pbRecord(pbSelected, true));
+if (pbWaBtn) pbWaBtn.addEventListener('click', () => pbRecord(pbSelected, false));
+if (pbResetSettingsBtn) pbResetSettingsBtn.addEventListener('click', pbClearAll);
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') pbCloseSheet();
+});
+
+document.addEventListener('click', (e) => {
+    if (!pbSheet || pbSheet.classList.contains('hidden')) return;
+
+    // 用事件派发时冻结的路径判断，避免渲染后目标元素已被移除导致误判
+    const path = (typeof e.composedPath === 'function') ? e.composedPath() : [];
+
+    if (path.indexOf(pbSheet) >= 0) return;
+    if (pbAddBtn && path.indexOf(pbAddBtn) >= 0) return;
+    if (pbGrid && path.indexOf(pbGrid) >= 0) return;
+
+    if (pbSheet.contains(e.target)) return;
+    if (pbAddBtn && pbAddBtn.contains(e.target)) return;
+    if (pbGrid && pbGrid.contains(e.target)) return;
+
+    pbCloseSheet();
+});
+
+if (wpBtnUp) wpBtnUp.addEventListener('click', () => pbAdjustPenalty(1));
+if (wpBtnDown) wpBtnDown.addEventListener('click', () => pbAdjustPenalty(-1));
+if (pcBtnUp) pcBtnUp.addEventListener('click', () => pbAdjustProblemCount(1));
+if (pcBtnDown) pcBtnDown.addEventListener('click', () => pbAdjustProblemCount(-1));
+
+if (wrongPenaltyInput) {
+    wrongPenaltyInput.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            pbAdjustPenalty(1);
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            pbAdjustPenalty(-1);
+        }
+    });
+}
+
+if (problemCountInput) {
+    problemCountInput.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            pbAdjustProblemCount(1);
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            pbAdjustProblemCount(-1);
+        }
+    });
+}
+
 saveSettingsBtn.addEventListener('click', saveSettings);
 
 initSettings();
+pbInit();
 
 if (isDarkMode) {
     document.body.classList.add("color-scheme-dark");
