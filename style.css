@@ -417,6 +417,78 @@ body.dark-mode .legend-segment {
     font-size: clamp(0.7rem, 1vw, 0.95rem);
 }
 
+/* ===== 自定义时间选择器（Firefox 没有 type=time 的弹出选择器） ===== */
+.time-picker {
+    margin-top: 6px;
+    padding: 6px 8px 8px;
+    border: 1.5px solid var(--modal-border);
+    border-radius: 12px;
+    background-color: var(--bg-color);
+}
+
+.time-picker.hidden {
+    display: none;
+}
+
+.tp-head {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-align: center;
+    padding-bottom: 4px;
+    font-family: 'Share Tech Mono', Consolas, monospace;
+}
+
+.tp-cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+}
+
+.tp-col {
+    position: relative;      /* 让按钮的 offsetTop 相对本列，便于滚动定位 */
+    max-height: 132px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tp-col button {
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    font-family: 'Share Tech Mono', Consolas, monospace;
+    font-size: 0.8rem;
+    padding: 3px 0;
+    border-radius: 6px;
+    line-height: 1.2;
+}
+
+.tp-col button:hover {
+    background-color: var(--accent-soft);
+    transform: none;
+}
+
+.tp-col button.on {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+}
+
+.tp-now {
+    width: 100%;
+    margin-top: 6px;
+    font-size: 0.78rem;
+    padding: 5px 0;
+    border-radius: 9px;
+    border: 1.5px solid var(--modal-border);
+    background-color: var(--modal-bg);
+    color: var(--text-color);
+}
+
 /* ===== 罚时板 / Penalty board（固定在底部，与榜单列对齐的“我的一行”） ===== */
 .penalty-board {
     position: fixed;
@@ -745,7 +817,9 @@ body.has-ranklist .pb-cell {
     border-color: var(--accent);
 }
 
-.color-scheme-dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+.color-scheme-dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.color-scheme-dark input[type="date"]::-webkit-calendar-picker-indicator,
+.color-scheme-dark input[type="time"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
 }
 

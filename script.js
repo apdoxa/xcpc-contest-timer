@@ -4,8 +4,19 @@ const themeToggleBtn = document.getElementById('theme-toggle');
 const saveSettingsBtn = document.getElementById('save-settings-btn');
 
 const pageTitleInput = document.getElementById('page-title');
-const startTimeInput = document.getElementById('start-time');
-const endTimeInput = document.getElementById('end-time');
+const startDateInput = document.getElementById('start-date');
+const startClockInput = document.getElementById('start-clock');
+const durationHoursInput = document.getElementById('duration-hours');
+const resetTimeBtn = document.getElementById('reset-time-btn');
+const startClockPickBtn = document.getElementById('start-clock-pick');
+const startPicker = document.getElementById('start-picker');
+const tpHour = document.getElementById('tp-hour');
+const tpMin = document.getElementById('tp-min');
+const tpSec = document.getElementById('tp-sec');
+const tpNowBtn = document.getElementById('tp-now');
+const durationBtnUp = document.getElementById('duration-btn-up');
+const durationBtnDown = document.getElementById('duration-btn-down');
+const endTimeHintEl = document.getElementById('end-time-hint');
 const warningRatioInput = document.getElementById('warning-ratio');
 const warningTimeInput = document.getElementById('warning-time');
 const finalWarningInput = document.getElementById('final-warning');
@@ -84,16 +95,59 @@ function formatClock(date) {
     return `${hh}:${mm}:${ss}`;
 }
 
-function formatForInput(date, tzOffsetH) {
+/* 拆成 <input type="date"> 与 <input type="time">，Firefox 下也能选时刻 */
+function formatDateForInput(date, tzOffsetH) {
     const targetMs = date.getTime() + tzOffsetH * 3600000;
     const d = new Date(targetMs);
     const YYYY = d.getUTCFullYear();
     const MM = String(d.getUTCMonth() + 1).padStart(2, '0');
     const DD = String(d.getUTCDate()).padStart(2, '0');
+    return `${YYYY}-${MM}-${DD}`;
+}
+
+function formatClockForInput(date, tzOffsetH) {
+    const targetMs = date.getTime() + tzOffsetH * 3600000;
+    const d = new Date(targetMs);
     const hh = String(d.getUTCHours()).padStart(2, '0');
     const mm = String(d.getUTCMinutes()).padStart(2, '0');
     const ss = String(d.getUTCSeconds()).padStart(2, '0');
-    return `${YYYY}-${MM}-${DD}T${hh}:${mm}:${ss}`;
+    return `${hh}:${mm}:${ss}`;
+}
+
+/* 从设置面板读出比赛时长（小时），无效时返回 null */
+function getDurationHours() {
+    if (!durationHoursInput) return null;
+    const hours = parseFloat(durationHoursInput.value);
+    if (isNaN(hours) || hours <= 0 || hours > 48) return null;
+    return hours;
+}
+
+function getDurationMs() {
+    const hours = getDurationHours();
+    return (hours === null ? 5 : hours) * 3600000;
+}
+
+function updateEndTimeHint() {
+    if (!endTimeHintEl) return;
+    const hours = getDurationHours();
+    const dateStr = startDateInput ? startDateInput.value : '';
+    const clockStr = startClockInput ? startClockInput.value : '';
+
+    if (hours === null || !dateStr || !clockStr) {
+        endTimeHintEl.textContent = '结束 End —';
+        return;
+    }
+
+    const tzInput = parseTzOffset(timezoneOffsetInput.value);
+    const tzForHint = isNaN(tzInput) ? tzOffsetHours : tzInput;
+    const start = parseLocalInput(`${dateStr}T${clockStr}`, tzForHint);
+    if (isNaN(start.getTime())) {
+        endTimeHintEl.textContent = '结束 End —';
+        return;
+    }
+
+    const end = new Date(start.getTime() + hours * 3600000);
+    endTimeHintEl.textContent = `结束 End ${formatDateForInput(end, tzForHint)} ${formatClockForInput(end, tzForHint)}`;
 }
 
 function parseLocalInput(timeStr, tzOffsetH) {
@@ -105,16 +159,8 @@ function parseLocalInput(timeStr, tzOffsetH) {
 }
 
 function getTotalDurationMin() {
-    const startStr = startTimeInput.value;
-    const endStr = endTimeInput.value;
-
-    if (!startStr || !endStr) return 0;
-    const startObj = new Date(startStr);
-    const endObj = new Date(endStr);
-
-    if (isNaN(startObj) || isNaN(endObj)) return 0;
-    const diffMin = (endObj - startObj) / 60000;
-    return diffMin > 0 ? diffMin : 0;
+    const hours = getDurationHours();
+    return hours === null ? 0 : hours * 60;
 }
 
 function syncWarningTimeFromRatio() {
@@ -168,6 +214,7 @@ function initSettings() {
     const savedTitle = localStorage.getItem('xcpc-title') || 'XCPC Contest Timer';
     const savedStart = localStorage.getItem('xcpc-start');
     const savedEnd = localStorage.getItem('xcpc-end');
+    const savedDuration = localStorage.getItem('xcpc-duration');
     const savedTheme = localStorage.getItem('xcpc-theme') || 'light';
     const savedWarningRatio = localStorage.getItem('xcpc-warning-ratio');
     const savedFinalWarning = localStorage.getItem('xcpc-final-warning');
@@ -201,18 +248,28 @@ function initSettings() {
     mainTitleEl.textContent = savedTitle;
     document.title = savedTitle;
 
-    if (savedStart && savedEnd) {
-        startTime = new Date(savedStart);
-        endTime = new Date(savedEnd);
-    } else {
-        const now = new Date();
-        const later = new Date(now.getTime() + 5 * 3600 * 1000);
-        startTime = now;
-        endTime = later;
+    // 比赛时长（分钟）：优先用新字段，旧数据从 end - start 推算
+    let durationMin = null;
+    const parsedDuration = parseFloat(savedDuration);
+    if (savedDuration !== null && !isNaN(parsedDuration) && parsedDuration > 0) {
+        durationMin = parsedDuration;
+    } else if (savedStart && savedEnd) {
+        const legacy = (new Date(savedEnd).getTime() - new Date(savedStart).getTime()) / 60000;
+        if (isFinite(legacy) && legacy > 0) durationMin = legacy;
     }
+    if (durationMin === null) durationMin = 5 * 60;
 
-    startTimeInput.value = formatForInput(startTime, tzOffsetHours);
-    endTimeInput.value = formatForInput(endTime, tzOffsetHours);
+    if (savedStart) {
+        startTime = new Date(savedStart);
+    } else {
+        startTime = new Date();
+    }
+    endTime = new Date(startTime.getTime() + durationMin * 60000);
+
+    startDateInput.value = formatDateForInput(startTime, tzOffsetHours);
+    startClockInput.value = formatClockForInput(startTime, tzOffsetHours);
+    durationHoursInput.value = Number((durationMin / 60).toFixed(2)).toString();
+    updateEndTimeHint();
     syncWarningTimeFromRatio();
 
     if (savedTheme === 'light') {
@@ -227,11 +284,16 @@ function initSettings() {
 
 function saveSettings() {
     const title = pageTitleInput.value.trim() || 'TIME';
-    const startStr = startTimeInput.value;
-    const endStr = endTimeInput.value;
+    const startStr = `${startDateInput.value}T${startClockInput.value}`;
 
-    if (!startStr || !endStr) {
-        alert("请输入完整的开始和结束时间");
+    if (!startDateInput.value || !startClockInput.value) {
+        alert("请输入完整的开始日期和时刻");
+        return;
+    }
+
+    const durationHoursVal = getDurationHours();
+    if (durationHoursVal === null) {
+        alert("比赛时长必须是 0 到 48 小时之间的数字");
         return;
     }
 
@@ -244,17 +306,12 @@ function saveSettings() {
     tzOffsetHours = tzVal;
 
     const start = parseLocalInput(startStr, tzOffsetHours);
-    const end = parseLocalInput(endStr, tzOffsetHours);
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    if (isNaN(start.getTime())) {
         alert("时间格式无法解析");
         return;
     }
 
-    if (start >= end) {
-        alert("结束时间必须晚于开始时间");
-        return;
-    }
+    const end = new Date(start.getTime() + durationHoursVal * 3600000);
 
     const ratioVal = parseFloat(warningRatioInput.value);
     if (isNaN(ratioVal) || ratioVal < 0 || ratioVal > 1) {
@@ -287,7 +344,8 @@ function saveSettings() {
 
     localStorage.setItem('xcpc-title', title);
     localStorage.setItem('xcpc-start', startTime.toISOString());
-    localStorage.setItem('xcpc-end', endTime.toISOString());
+    localStorage.setItem('xcpc-duration', (durationHoursVal * 60).toString());
+    localStorage.removeItem('xcpc-end');
     localStorage.setItem('xcpc-warning-ratio', warningRatio.toString());
     localStorage.setItem('xcpc-final-warning', finalWarningMin.toString());
     localStorage.setItem('xcpc-tz', tzOffsetHours.toString());
@@ -296,6 +354,7 @@ function saveSettings() {
     timezoneOffsetInput.value = formatTzOffset(tzOffsetHours);
     mainTitleEl.textContent = title;
     document.title = title;
+    updateEndTimeHint();
 
     modal.classList.add('hidden');
     updateLegendMarkers();
@@ -419,6 +478,11 @@ settingsToggleBtn.addEventListener('click', () => {
     modal.classList.remove('hidden');
 });
 
+/* 关闭设置面板时收起时间选择器 */
+if (saveSettingsBtn) {
+    saveSettingsBtn.addEventListener('click', () => toggleTimePicker(false));
+}
+
 function adjustTzInput(deltaHours) {
     let currentTz = parseTzOffset(timezoneOffsetInput.value);
     if (isNaN(currentTz)) currentTz = 8;
@@ -430,6 +494,8 @@ function adjustTzInput(deltaHours) {
 
 tzBtnUp.addEventListener('click', () => adjustTzInput(0.5));
 tzBtnDown.addEventListener('click', () => adjustTzInput(-0.5));
+
+timezoneOffsetInput.addEventListener('input', updateEndTimeHint);
 
 timezoneOffsetInput.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowUp') {
@@ -466,8 +532,19 @@ warningRatioInput.addEventListener('keydown', (e) => {
 
 warningRatioInput.addEventListener('input', syncWarningTimeFromRatio);
 warningTimeInput.addEventListener('input', syncWarningRatioFromTime);
-startTimeInput.addEventListener('input', syncWarningTimeFromRatio);
-endTimeInput.addEventListener('input', syncWarningTimeFromRatio);
+startDateInput.addEventListener('input', () => {
+    updateEndTimeHint();
+    syncWarningTimeFromRatio();
+});
+startClockInput.addEventListener('input', () => {
+    if (startPicker && !startPicker.classList.contains('hidden')) syncTimePicker();
+    updateEndTimeHint();
+    syncWarningTimeFromRatio();
+});
+durationHoursInput.addEventListener('input', () => {
+    updateEndTimeHint();
+    syncWarningTimeFromRatio();
+});
 
 function adjustFwInput(delta) {
     let current = parseFloat(finalWarningInput.value);
@@ -475,6 +552,178 @@ function adjustFwInput(delta) {
     let next = current + delta;
     if (next < 0) next = 0;
     finalWarningInput.value = Number(next.toFixed(2)).toString();
+}
+
+/* ---- 自定义时刻选择器（时 / 分 / 秒 三列） ---- */
+const TIME_PICKER_COLS = [
+    { el: tpHour, count: 24, get: (h, m, sec) => h, set: (h, m, sec, v) => [v, m, sec] },
+    { el: tpMin, count: 60, get: (h, m, sec) => m, set: (h, m, sec, v) => [h, v, sec] },
+    { el: tpSec, count: 60, get: (h, m, sec) => sec, set: (h, m, sec, v) => [h, m, v] }
+];
+
+function parseClockParts(text) {
+    const parts = String(text || '').trim().split(':').map((p) => parseInt(p, 10));
+    let h = parts[0];
+    let m = parts.length > 1 ? parts[1] : 0;
+    let sec = parts.length > 2 ? parts[2] : 0;
+    if (!isFinite(h) || h < 0 || h > 23) h = 0;
+    if (!isFinite(m) || m < 0 || m > 59) m = 0;
+    if (!isFinite(sec) || sec < 0 || sec > 59) sec = 0;
+    return [h, m, sec];
+}
+
+function currentClockParts() {
+    return parseClockParts(startClockInput.value);
+}
+
+function writeClockParts(parts) {
+    const pad = (n) => String(n).padStart(2, '0');
+    startClockInput.value = `${pad(parts[0])}:${pad(parts[1])}:${pad(parts[2])}`;
+}
+
+function buildTimePicker() {
+    if (!startPicker) return;
+
+    TIME_PICKER_COLS.forEach((col) => {
+        if (!col.el || col.el.childElementCount) return;
+        const fragment = document.createDocumentFragment();
+        for (let i = 0; i < col.count; i++) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.dataset.value = String(i);
+            btn.textContent = String(i).padStart(2, '0');
+            fragment.appendChild(btn);
+        }
+        col.el.appendChild(fragment);
+    });
+}
+
+function syncTimePicker() {
+    if (!startPicker) return;
+    const parts = currentClockParts();
+
+    TIME_PICKER_COLS.forEach((col, colIndex) => {
+        if (!col.el) return;
+        const current = parts[colIndex];
+        const buttons = col.el.children;
+        for (let i = 0; i < buttons.length; i++) {
+            buttons[i].classList.toggle('on', i === current);
+        }
+        if (buttons[current]) {
+            const target = buttons[current];
+            const top = target.offsetTop - col.el.clientHeight / 2 + target.offsetHeight / 2;
+            col.el.scrollTop = Math.max(0, top);
+        }
+    });
+}
+
+function toggleTimePicker(show) {
+    if (!startPicker) return;
+    const willShow = (show === undefined) ? startPicker.classList.contains('hidden') : show;
+    if (willShow) {
+        buildTimePicker();
+        startPicker.classList.remove('hidden');
+        syncTimePicker();
+    } else {
+        startPicker.classList.add('hidden');
+    }
+}
+
+if (startPicker) {
+    startPicker.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-value]');
+        if (!btn) return;
+        const col = btn.parentElement;
+        const colIndex = TIME_PICKER_COLS.findIndex((c) => c.el === col);
+        if (colIndex < 0) return;
+
+        const parts = currentClockParts();
+        parts[colIndex] = parseInt(btn.dataset.value, 10);
+        writeClockParts(parts);
+        syncTimePicker();
+        updateEndTimeHint();
+        syncWarningTimeFromRatio();
+    });
+}
+
+if (startClockPickBtn) {
+    startClockPickBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleTimePicker();
+    });
+}
+
+/* 点选择器以外的位置就收起 */
+document.addEventListener('click', (e) => {
+    if (!startPicker || startPicker.classList.contains('hidden')) return;
+    if (startPicker.contains(e.target)) return;
+    if (startClockPickBtn && startClockPickBtn.contains(e.target)) return;
+    toggleTimePicker(false);
+});
+
+if (tpNowBtn) {
+    tpNowBtn.addEventListener('click', () => {
+        const now = new Date();
+        startClockInput.value = formatClockForInput(now, tzOffsetHours);
+        startDateInput.value = formatDateForInput(now, tzOffsetHours);
+        syncTimePicker();
+        updateEndTimeHint();
+        syncWarningTimeFromRatio();
+    });
+}
+
+function adjustDuration(delta) {
+    let current = parseFloat(durationHoursInput.value);
+    if (isNaN(current)) current = 5;
+    const next = Math.min(48, Math.max(0.5, Math.round((current + delta) * 100) / 100));
+    durationHoursInput.value = Number(next.toFixed(2)).toString();
+    updateEndTimeHint();
+    syncWarningTimeFromRatio();
+}
+
+/* 重置：以当前时间为开始时间，时长不变 */
+function resetTimeToNow() {
+    const now = new Date();
+
+    startDateInput.value = formatDateForInput(now, tzOffsetHours);
+    startClockInput.value = formatClockForInput(now, tzOffsetHours);
+    if (startPicker && !startPicker.classList.contains('hidden')) syncTimePicker();
+
+    const hours = getDurationHours();
+    const durationMin = (hours === null ? 5 * 60 : hours * 60);
+
+    startTime = now;
+    endTime = new Date(now.getTime() + durationMin * 60000);
+
+    try {
+        localStorage.setItem('xcpc-start', startTime.toISOString());
+        localStorage.setItem('xcpc-duration', durationMin.toString());
+    } catch (e) {
+        /* 忽略 */
+    }
+
+    if (scrubSec !== null) clearScrub();
+    lastLiveSec = -1;
+    updateEndTimeHint();
+    updateLegendMarkers();
+    updateLoop();
+    pbToast('已重置：从现在开始重新计时');
+}
+
+if (durationBtnUp) durationBtnUp.addEventListener('click', () => adjustDuration(0.5));
+if (durationBtnDown) durationBtnDown.addEventListener('click', () => adjustDuration(-0.5));
+if (resetTimeBtn) resetTimeBtn.addEventListener('click', resetTimeToNow);
+
+if (durationHoursInput) {
+    durationHoursInput.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            adjustDuration(0.5);
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            adjustDuration(-0.5);
+        }
+    });
 }
 
 fwBtnUp.addEventListener('click', () => adjustFwInput(0.5));

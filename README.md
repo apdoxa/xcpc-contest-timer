@@ -125,12 +125,15 @@ The switch at the **top of the settings panel** (on by default).
 ### 自定义选项 / Customization
 
 - 页面标题自定义 / Customizable page title
-- 竞赛开始和结束时间设置 / Configurable contest start and end times
+- 开始时间（日期 + 时刻）与比赛时长设置 / Configurable start date-time and contest duration
+- 一键重置时间：从现在开始重新计时 / One-click reset: restart the clock from now
 - 提醒比例调整 / Warning ratio adjustment
 - 最后提醒时间设置 / Final warning time setting
 - 时区快速调整 / Quick timezone adjustment
 - 每次错误罚时（默认 20 分钟）/ Penalty per wrong submission (default 20 min)
 - 题目数量（默认 15 题，A 开始命名，最多 26 题）/ Problem count (default 15, starting from A, max 26)
+- 比赛时长（默认 5 小时，0.5 小时步进）/ Contest duration (default 5 h, 0.5 h steps)
+- 重置时间为此刻 / Reset the start time to now
 - 榜单模拟开关（设置第一项，默认开启）/ Ranklist simulation switch (first item in Settings, on by default)
 
 ## 快速开始 / Quick Start
@@ -149,8 +152,14 @@ Click the ⚙️ button in the top-right corner to open settings
 
 ### 3️⃣ 设置竞赛时间 / Set Contest Time
 
-- 开始时间 / Start Time
-- 结束时间 / End Time
+- 开始时间 / Start Time：日期用原生日历；时刻可以直接输入 `HH:MM:SS`，也可以点输入框右侧的 **▼** 用内置选择器（时 / 分 / 秒 三列 + 「现在」）
+- Start date uses the native calendar; the clock can be typed as `HH:MM:SS` or picked from the built-in ▼ picker (hour / minute / second columns + "Now")
+- Firefox 没有 `type="time"` 的弹出选择器，所以时刻选择器是自带的，所有浏览器表现一致
+- Firefox ships no popup picker for `type="time"`, so the clock picker is built in and behaves the same everywhere
+- 比赛时长 / Duration：以小时为单位，可填小数（如 `4.5`），下方实时显示算出来的结束时间
+- Duration in hours, decimals allowed (e.g. `4.5`); the resulting end time is shown right below
+- 「重置」按钮：把开始时间设为**此刻**并立即生效，从现在开始重新计时
+- The "重置" button sets the start time to **now** and takes effect immediately
 
 ### 4️⃣ 调整预警 / Adjust Warnings
 
@@ -296,6 +305,8 @@ Measured with headless Chromium on a 160-team × 13-problem ranklist:
 - Time calculation based on browser's local time, ensure your system clock is accurate.
 - 支持离线使用，无需网络连接。
 - Works offline, no internet connection required.
+- 比赛时长与开始时间存在 LocalStorage（`xcpc-start` / `xcpc-duration`），旧版本的 `xcpc-end` 仍会被读取一次用于推算时长。
+- Duration and start time are stored in LocalStorage (`xcpc-start` / `xcpc-duration`); a legacy `xcpc-end` is still read once to derive the duration.
 - 罚时板记录的是**相对比赛开始的时间**，修改开始时间不会改变已记录的赛时。
 - Board entries store times **relative to the contest start**, so changing the start time keeps the logged contest times unchanged.
 - 比赛中途记录提交时，请确保开始时间已正确设置；比赛尚未开始时记录会记为 `00:00`。
