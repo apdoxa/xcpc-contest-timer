@@ -32,6 +32,17 @@
     --idle-bg: #e6eff9;
     --idle-border: #d3e2f1;
     --idle-text: #8ba3ba;
+    --float-bg: rgba(238, 244, 251, 0.93);
+
+    /* 榜单列宽（底部“我的一行”复用同一组变量，保证列对齐） */
+    --rl-pad: 24px;
+    --rl-border: 1.5px;
+    --rl-rank-w: 36px;
+    --rl-team-w: 200px;
+    --rl-solved-w: 52px;
+    --rl-penalty-w: 68px;
+    --rl-cell-w: 38px;
+    --pb-cell-size: 32px;
 }
 
 body.dark-mode {
@@ -59,6 +70,7 @@ body.dark-mode {
     --idle-bg: #1e2f3f;
     --idle-border: #2c4257;
     --idle-text: #7c93a8;
+    --float-bg: rgba(22, 35, 47, 0.92);
 }
 
 * {
@@ -185,7 +197,7 @@ body.dark-mode .icon-logo-white {
 }
 
 .center-stage {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
@@ -195,9 +207,9 @@ body.dark-mode .icon-logo-white {
 }
 
 #main-title {
-    font-size: clamp(1.4rem, 2.8vw, 2.6rem);
+    font-size: clamp(1.3rem, 2.4vw, 2.2rem);
     font-weight: 600;
-    margin-bottom: 1vh;
+    margin-bottom: 0.6vh;
     text-align: center;
     color: var(--text-color);
     opacity: 0.9;
@@ -210,7 +222,7 @@ body.dark-mode .icon-logo-white {
 }
 
 .display-clock {
-    font-size: min(9vw, 14vh);
+    font-size: min(7.4vw, 11.5vh);
     line-height: 1;
     color: var(--accent);
     transition: color 0.4s;
@@ -230,7 +242,7 @@ body.dark-mode .icon-logo-white {
 
 .progress-section {
     width: 100%;
-    margin-top: 2vh;
+    margin-top: 1.4vh;
 }
 
 .progress-labels-top {
@@ -314,7 +326,7 @@ body.dark-mode .icon-logo-white {
     width: 100%;
     height: clamp(38px, 5vh, 52px);
     background-color: var(--bar-bg);
-    margin-bottom: 2.5vh;
+    margin-bottom: 1.8vh;
     border-radius: 26px;
     overflow: hidden;
     transition: opacity 0.3s, height 0.3s, margin-bottom 0.3s, padding 0.3s;
@@ -405,38 +417,108 @@ body.dark-mode .legend-segment {
     font-size: clamp(0.7rem, 1vw, 0.95rem);
 }
 
-/* ===== 罚时板 / Penalty board ===== */
+/* ===== 罚时板 / Penalty board（固定在底部，与榜单列对齐的“我的一行”） ===== */
 .penalty-board {
-    flex: 0 0 auto;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 8px 24px 20px;
+    padding: 8px calc(var(--rl-pad) + var(--rl-border));
+    background-color: var(--float-bg);
+    backdrop-filter: blur(10px);
+    border-top: 1.5px solid var(--modal-border);
+}
+
+.pb-mine {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: var(--rl-rank-w) var(--rl-team-w) var(--rl-solved-w) var(--rl-penalty-w);
+    align-items: center;
+}
+
+.pb-mine-rank,
+.pb-mine-solved,
+.pb-mine-penalty {
+    font-family: 'Share Tech Mono', Consolas, monospace;
+    font-weight: bold;
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+.pb-mine-rank {
+    color: var(--accent);
+    font-size: 1.05rem;
+}
+
+.pb-mine-team {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-color);
+    padding-left: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pb-mine-en {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+}
+
+.pb-mine-solved {
+    color: var(--ok-text);
+}
+
+.pb-mine-penalty {
+    color: var(--text-color);
+}
+
+.pb-cells-wrap {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .pb-grid {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-    max-width: 100%;
+    gap: 7px;
+    justify-content: flex-start;
+}
+
+/* 有榜单时：与榜单题目列一一对齐 */
+body.has-ranklist .pb-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: var(--rl-cell-w);
+    justify-content: start;
+    gap: 0;
+    flex-wrap: nowrap;
+    will-change: transform;
 }
 
 .pb-cell {
-    width: clamp(38px, 3.2vw, 50px);
-    height: clamp(38px, 3.2vw, 50px);
+    width: var(--pb-cell-size);
+    height: var(--pb-cell-size);
     padding: 0;
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1.5px solid var(--idle-border);
     background-color: var(--idle-bg);
     color: var(--idle-text);
     font-family: 'Share Tech Mono', Consolas, monospace;
-    font-size: clamp(1rem, 1.2vw, 1.25rem);
+    font-size: 0.95rem;
     font-weight: bold;
     line-height: 1;
     letter-spacing: 0;
     transition: transform 0.15s, background-color 0.25s, border-color 0.25s, color 0.25s;
+}
+
+body.has-ranklist .pb-cell {
+    justify-self: center;
 }
 
 .pb-cell:hover {
@@ -456,44 +538,34 @@ body.dark-mode .legend-segment {
     color: var(--bad-text);
 }
 
-.pb-summary {
-    font-family: 'Share Tech Mono', Consolas, monospace;
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    letter-spacing: 0.5px;
-}
-
-/* 右下角加号 / Floating add button */
+/* 加号 / Add button */
 .pb-add {
-    position: fixed;
-    right: 30px;
-    bottom: 30px;
-    width: 58px;
-    height: 58px;
+    flex: 0 0 auto;
+    width: 50px;
+    height: 50px;
     padding: 0;
     border: none;
     border-radius: 50%;
     background-color: var(--accent);
     color: #ffffff;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: bold;
     line-height: 1;
-    box-shadow: 0 8px 20px rgba(91, 155, 213, 0.35);
-    z-index: 900;
+    box-shadow: 0 6px 16px rgba(91, 155, 213, 0.35);
     transition: transform 0.15s, box-shadow 0.2s, background-color 0.2s;
 }
 
 .pb-add:hover {
-    transform: translateY(-2px) scale(1.03);
-    box-shadow: 0 10px 24px rgba(91, 155, 213, 0.45);
+    transform: translateY(-1px) scale(1.04);
+    box-shadow: 0 8px 20px rgba(91, 155, 213, 0.45);
     border: none;
 }
 
 /* 记录面板 / Submit sheet */
 .pb-sheet {
     position: fixed;
-    right: 30px;
-    bottom: 102px;
+    right: 24px;
+    bottom: 86px;
     width: min(320px, calc(100vw - 40px));
     background-color: var(--modal-bg);
     border: 1.5px solid var(--modal-border);
@@ -728,6 +800,603 @@ body.dark-mode .legend-segment {
     transform: translate(-50%, 0);
 }
 
+/* ===== 榜单 / Ranklist ===== */
+.ranklist {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px var(--rl-pad) 76px;
+}
+
+.rl-head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.rl-head-left {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+}
+
+.rl-label {
+    font-size: 0.78rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.rl-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rl-head-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.rl-btn {
+    font-size: 0.82rem;
+    padding: 5px 13px;
+    border-radius: 10px;
+    border: 1.5px solid var(--modal-border);
+    background-color: var(--modal-bg);
+    color: var(--text-color);
+}
+
+.rl-btn.hidden {
+    display: none;
+}
+
+.rl-btn-primary {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+}
+
+.rl-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+}
+
+.rl-empty {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.rl-empty.hidden {
+    display: none;
+}
+
+.rl-import-big {
+    font-size: 0.95rem;
+    padding: 10px 22px;
+    border-radius: 12px;
+    background-color: var(--modal-bg);
+    border: 1.5px solid var(--modal-border);
+    color: var(--text-color);
+}
+
+.rl-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    border: 1.5px solid var(--modal-border);
+    border-radius: 14px;
+    background-color: var(--modal-bg);
+}
+
+.rl-scroll.hidden {
+    display: none;
+}
+
+.rl-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    table-layout: fixed;
+    font-size: 0.85rem;
+}
+
+.rl-table col {
+    min-width: 0;
+}
+
+.rl-table th,
+.rl-table td {
+    padding: 5px 8px;
+    text-align: center;
+    white-space: nowrap;
+    font-weight: normal;
+}
+
+.rl-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: var(--bar-bg);
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    font-weight: bold;
+    border-bottom: 1.5px solid var(--modal-border);
+}
+
+.rl-table tbody tr:hover td {
+    background-color: var(--accent-soft);
+}
+
+.rl-table tbody td {
+    border-bottom: 1px solid var(--idle-border);
+    color: var(--text-color);
+}
+
+.rl-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.rl-table tr.unofficial {
+    opacity: 0.55;
+}
+
+.rl-rank {
+    font-family: 'Share Tech Mono', Consolas, monospace;
+    color: var(--text-muted);
+}
+
+.rl-team {
+    text-align: left !important;
+}
+
+.rl-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.rl-org {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rl-team,
+.rl-rank,
+.rl-solved,
+.rl-penalty {
+    overflow: hidden;
+}
+
+/* 通过 / 罚时 与题号区之间加一条分隔线 */
+.rl-penalty {
+    border-right: 1px solid var(--idle-border);
+}
+
+.rl-spacer {
+    width: auto !important;
+}
+
+.rl-prob-head,
+.rl-cell {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.rl-prob-head {
+    font-family: 'Share Tech Mono', Consolas, monospace;
+    font-size: 0.85rem;
+}
+
+.rl-cell {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+}
+
+.rl-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--pb-cell-size);
+    height: var(--pb-cell-size);
+    padding: 0;
+    border-radius: 10px;
+    border: 1.5px solid var(--idle-border);
+    background-color: var(--idle-bg);
+    color: var(--idle-text);
+    font-family: 'Share Tech Mono', Consolas, monospace;
+    font-size: 0.85rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.rl-cell.state-solved .rl-chip {
+    background-color: var(--ok-bg);
+    border-color: var(--ok-border);
+    color: var(--ok-text);
+}
+
+.rl-cell.state-rj .rl-chip {
+    background-color: var(--bad-bg);
+    border-color: var(--bad-border);
+    color: var(--bad-text);
+}
+
+.rl-cell.state-frozen .rl-chip {
+    background-color: var(--phase-warn);
+    border-color: var(--phase-warn);
+    color: #6d5717;
+}
+
+.rl-solved {
+    font-family: 'Share Tech Mono', Consolas, monospace;
+    font-weight: bold;
+    color: var(--ok-text);
+}
+
+.rl-penalty {
+    font-family: 'Share Tech Mono', Consolas, monospace;
+    color: var(--text-color);
+}
+
+/* ===== 导入弹框 / Import modal ===== */
+.rl-modal-content {
+    max-width: 760px;
+    width: 94%;
+    display: flex;
+    flex-direction: column;
+}
+
+.rl-modal-sub {
+    text-align: center;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', Consolas, monospace;
+    margin-bottom: 12px;
+}
+
+#rl-input {
+    width: 100%;
+    height: 44vh;
+    min-height: 160px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1.5px solid var(--modal-border);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Share Tech Mono', Consolas, 'Courier New', monospace;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    resize: vertical;
+}
+
+#rl-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.rl-error {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1.5px solid var(--bad-border);
+    background-color: var(--bad-bg);
+    color: var(--bad-text);
+    font-size: 0.82rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.rl-error.hidden {
+    display: none;
+}
+
+.rl-file-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.rl-file-note {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.rl-file-note.loaded {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+#rl-input.dragover {
+    border-color: var(--accent);
+    border-style: dashed;
+    background-color: var(--accent-soft);
+}
+
+.rl-modal-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+
+.rl-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    max-width: 60%;
+    line-height: 1.4;
+}
+
+.rl-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+/* ===== 榜单模拟开关 / Ranklist simulation switch ===== */
+.toggle-row {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 0 !important;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+    min-width: 0;
+}
+
+.toggle-cn {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.toggle-en {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', Consolas, monospace;
+    letter-spacing: 0.5px;
+}
+
+.toggle-switch {
+    position: relative;
+    flex: 0 0 auto;
+    width: 46px;
+    height: 26px;
+}
+
+.toggle-switch input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    border: none;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.toggle-track {
+    position: absolute;
+    inset: 0;
+    border-radius: 13px;
+    background-color: var(--bar-bg);
+    border: 1.5px solid var(--modal-border);
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: var(--modal-bg);
+    box-shadow: 0 1px 3px rgba(53, 80, 107, 0.3);
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-track {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+
+.toggle-switch input:checked + .toggle-track::after {
+    transform: translateX(20px);
+    background-color: #ffffff;
+}
+
+.toggle-switch input:focus-visible + .toggle-track {
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* 关闭榜单模拟：隐藏榜单与时间轴，计时器回到居中的整屏布局 */
+body.sim-off .ranklist,
+body.sim-off .scrub-row {
+    display: none;
+}
+
+body.sim-off .center-stage {
+    flex: 1 1 auto;
+}
+
+/* ===== 时间轴 / Timeline scrubber ===== */
+.scrub-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+    padding: 0 26px;
+}
+
+.scrub {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1 1 auto;
+    height: 18px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.scrub::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background-color: var(--bar-bg);
+}
+
+.scrub::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -5px;
+    border-radius: 50%;
+    background-color: var(--accent);
+    border: 2px solid var(--modal-bg);
+    box-shadow: 0 1px 4px rgba(53, 80, 107, 0.35);
+    transition: transform 0.15s;
+}
+
+.scrub:hover::-webkit-slider-thumb {
+    transform: scale(1.12);
+}
+
+.scrub::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background-color: var(--bar-bg);
+}
+
+.scrub::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: var(--accent);
+    border: 2px solid var(--modal-bg);
+}
+
+.scrub-btn {
+    flex: 0 0 auto;
+    font-size: 0.78rem;
+    padding: 3px 12px;
+    border-radius: 9px;
+    border: 1.5px solid var(--modal-border);
+    background-color: var(--modal-bg);
+    color: var(--text-color);
+}
+
+body.scrubbing .scrub-btn {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+}
+
+body.scrubbing .progress-bar {
+    transition: none;
+}
+
+body.scrubbing .display-clock {
+    opacity: 0.85;
+}
+
+/* ===== 矮屏压缩计时区，把空间让给榜单 ===== */
+@media (max-height: 900px) {
+    header {
+        padding: 10px 22px;
+    }
+
+    .display-clock {
+        font-size: min(6vw, 9vh);
+    }
+
+    #main-title {
+        font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+        margin-bottom: 0.4vh;
+    }
+
+    .legend-container {
+        height: clamp(30px, 4.2vh, 44px);
+        margin-bottom: 1.2vh;
+    }
+
+    .legend-marker {
+        font-size: 0.72rem;
+        padding: 0 4px;
+    }
+
+    #marker-1,
+    #marker-4 {
+        font-size: 0.8rem;
+    }
+
+    .progress-section {
+        margin-top: 1vh;
+    }
+
+    .progress-labels-top {
+        margin-bottom: 6px;
+    }
+
+    .progress-labels-bottom {
+        margin-top: 6px;
+    }
+
+    .progress-bar-container {
+        height: clamp(18px, 2.6vh, 30px);
+    }
+
+    .medium-clock {
+        font-size: clamp(1rem, 1.6vw, 1.5rem);
+    }
+
+    .label {
+        font-size: clamp(0.75rem, 1vw, 1rem);
+    }
+
+    .cn,
+    .en {
+        font-size: clamp(0.6rem, 0.85vw, 0.85rem);
+    }
+}
+
 /* ===== 小屏适配 / Small screens ===== */
 @media (max-width: 900px) {
     .medium-clock {
@@ -742,23 +1411,48 @@ body.dark-mode .legend-segment {
         font-size: min(13vw, 11vh);
     }
 
-    .pb-cell {
-        width: 34px;
-        height: 34px;
-        border-radius: 9px;
-        font-size: 0.95rem;
+    .pb-add {
+        width: 42px;
+        height: 42px;
+        font-size: 1.35rem;
     }
 
-    .pb-add {
-        right: 18px;
-        bottom: 18px;
-        width: 52px;
-        height: 52px;
+    .pb-mine-team {
+        font-size: 0.72rem;
+    }
+
+    .pb-mine-en {
+        display: none;
     }
 
     .pb-sheet {
-        right: 18px;
-        bottom: 82px;
+        right: 14px;
+        bottom: 72px;
+    }
+
+    .scrub-row {
+        padding: 0 12px;
+    }
+}
+
+@media (max-width: 760px) {
+    /* 窄屏时缩窄“我的一行”，但左右仍需与榜单列保持一致 */
+    :root {
+        --rl-rank-w: 30px;
+        --rl-team-w: 120px;
+        --rl-solved-w: 44px;
+        --rl-penalty-w: 56px;
+        --rl-cell-w: 34px;
+        --pb-cell-size: 28px;
+        --rl-pad: 12px;
+    }
+
+    .ranklist {
+        padding: 0 var(--rl-pad) 72px;
+    }
+
+    .pb-mine-team {
+        font-size: 0.68rem;
     }
 }
 
